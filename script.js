@@ -13,6 +13,14 @@
     'images/photo-10.jpg'
   ];
 
+  const gallery = document.querySelector('.js-gallery');
+  const progressbar = document.querySelector('.js-progressbar');
+
+  // スクロール固定用
+  const rootElement = document.documentElement;
+  const scrollbarFixTargets = document.querySelectorAll('.js-scrollbarFix');
+  let scrollbarFix = false;
+
   // 画像の枚数
   const count = imagesList.length;
 
@@ -65,9 +73,6 @@
     })
   }
 
-  const gallery = document.querySelector('.js-gallery');
-  const progressbar = document.querySelector('.js-progressbar');
-
   // `aria-valuemax`の初期化
   function initProgressbar() {
     progressbar.setAttribute('aria-valuemax', count);
@@ -92,12 +97,89 @@
       return;
     }
     progressbar.removeEventListener('transitionend', onTransitionendProgressbar, false);
+    // タブキー制御解除
+    deactivatePreventKeydownTabKey();
+    // スクロール固定解除
+    deactivateScrollLock()
     removeProgressbar();
   }
 
+  // タブキーでの移動制限
+  // キー押下時のイベントハンドラ
+  // タブキーが押下されたら`preventDefault()`して標準動作を無効にする
+  function onKeydownTabKey(event) {
+    if (event.key !== 'Tab') {
+      return;
+    }
+    event.preventDefault();
+  }
+
+  // キー押下時のイベントリスナを追加
+  function activatePreventKeydownTabKey() {
+    progressbar.addEventListener('keydown', onKeydownTabKey, false);
+  }
+
+  // キー押下時のイベントリスナを削除
+  function deactivatePreventKeydownTabKey() {
+    progressbar.removeEventListener('keydown', onKeydownTabKey, false);
+  }
+
+  // スクロール固定
+  function onTouchMoveProgressbar(event) {
+    if (event.targetTouches.length > 1) {
+      return;
+    }
+    event.preventDefault();
+  }
+
+  function activateScrollLock() {
+    addScrollbarWidth();
+    rootElement.classList.add('scrollLock');
+    progressbar.addEventListener('touchmove', onTouchMoveProgressbar, false);
+  }
+
+  function deactivateScrollLock() {
+    removeScrollbarWidth();
+    rootElement.classList.remove('scrollLock');
+    progressbar.removeEventListener('touchmove', onTouchMoveProgressbar, false);
+  }
+
+  function addScrollbarMargin(value) {
+    const targetsLength = scrollbarFixTargets.length;
+    for (let i = 0; i < targetsLength; i++) {
+      scrollbarFixTargets[i].style.marginRight = value;
+    }
+  }
+
+  function addScrollbarWidth() {
+    const scrollbarWidth = window.innerWidth - rootElement.clientWidth;
+    if (!scrollbarWidth) {
+      scrollbarFix = false;
+      return;
+    }
+    const value = scrollbarWidth + 'px';
+    addScrollbarMargin(value);
+    scrollbarFix = true;
+  }
+
+  function removeScrollbarWidth() {
+    if (!scrollbarFix) {
+      return;
+    }
+    addScrollbarMargin('');
+  }
+
+  // 実行
+  initProgressbar();
+  // フォーカスを合わせる
+  progressbar.focus();
+  // タブキー制御
+  activatePreventKeydownTabKey();
+  // スクロール固定
+  activateScrollLock();
+
   // 確認のため、setTimeoutで処理を遅らせた
   window.setTimeout(function() {
-    initProgressbar();
     loadAllImages();
-  }, 2000);
+  }, 5000);
 })();
